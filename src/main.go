@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/go-gl/mathgl/mgl32"
+	"math"
 	"runtime"
 )
 
@@ -43,9 +45,16 @@ func (c *Core) DrawObject(vao uint32) {
 	gl.ClearColor(.1, .3, .3, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	gl.UseProgram(c.DefaultPipeline.Program)
+	gl.UseProgram(c.DefaultPipeline.ID)
 
-	//c.DefaultPipeline.SetUniform4f("ourColor", mgl32.Vec4{0.1, 0.2, 0.3, 1})
+	t := glfw.GetTime()
+
+	trans := mgl32.Ident4()
+	trans = trans.Mul4(mgl32.HomogRotate3DZ(mgl32.DegToRad(10 * float32(math.Sin(t)))))
+	trans = trans.Mul4(mgl32.Scale3D(0.5, 0.5, 0.5))
+	trans = trans.Mul4(mgl32.Translate3D(0, 1.5, 0))
+
+	c.DefaultPipeline.SetUniformMatrix4fv("transform", trans)
 
 	// После отрисовки нужно привязать другой VAO
 	gl.BindVertexArray(vao)

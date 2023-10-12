@@ -10,19 +10,29 @@ import (
 )
 
 type Pipeline struct {
-	Program uint32
+	ID uint32
 }
 
 func (p *Pipeline) SetUniform4f(name string, vec mgl32.Vec4) {
 	gl.Uniform4f(
-		gl.GetUniformLocation(p.Program, gl.Str(fmt.Sprintf("%s\x00", name))),
+		gl.GetUniformLocation(p.ID, gl.Str(fmt.Sprintf("%s\x00", name))),
 		vec.X(), vec.Y(), vec.Z(), vec.W(),
 	)
 }
 
+func (p *Pipeline) SetUniformMatrix4fv(name string, mat mgl32.Mat4) {
+	gl.UniformMatrix4fv(
+		gl.GetUniformLocation(p.ID, gl.Str(fmt.Sprintf("%s\x00", name))),
+		1,
+		false,
+		&mat[0],
+	)
+}
+
+// Load загрузка шейдеров и создание пайплайна
 func Load(vpath string, fpath string) (*Pipeline, error) {
 	var err error
-	program := gl.CreateProgram()
+	programID := gl.CreateProgram()
 
 	vShader, err := compileShader(vpath, gl.VERTEX_SHADER)
 	if err != nil {
@@ -34,18 +44,18 @@ func Load(vpath string, fpath string) (*Pipeline, error) {
 		return nil, err
 	}
 
-	gl.AttachShader(program, vShader)
-	gl.AttachShader(program, fShader)
-	gl.LinkProgram(program)
+	gl.AttachShader(programID, vShader)
+	gl.AttachShader(programID, fShader)
+	gl.LinkProgram(programID)
 
 	var status int32
-	gl.GetProgramiv(program, gl.LINK_STATUS, &status)
+	gl.GetProgramiv(programID, gl.LINK_STATUS, &status)
 	if status == gl.FALSE {
 		var logLength int32
-		gl.GetProgramiv(program, gl.INFO_LOG_LENGTH, &logLength)
+		gl.GetProgramiv(programID, gl.INFO_LOG_LENGTH, &logLength)
 
 		log := strings.Repeat("\x00", int(logLength+1))
-		gl.GetProgramInfoLog(program, logLength, nil, gl.Str(log))
+		gl.GetProgramInfoLog(programID, logLength, nil, gl.Str(log))
 
 		return nil, fmt.Errorf("failed to link program: %v", log)
 	}
@@ -53,7 +63,7 @@ func Load(vpath string, fpath string) (*Pipeline, error) {
 	gl.DeleteShader(vShader)
 	gl.DeleteShader(fShader)
 
-	return &Pipeline{Program: program}, err
+	return &Pipeline{ID: programID}, err
 }
 
 func compileShader(path string, shaderType uint32) (uint32, error) {

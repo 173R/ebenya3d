@@ -4,7 +4,9 @@ layout (location = 1) in vec3 vColor;
 
 out vec3 vertexColor;
 
+uniform mat4 transform;
+
 void main() {
-    gl_Position = vec4(vPos, 1.0);
+    gl_Position = transform * vec4(vPos, 1.0);
     vertexColor = vColor;
 }
