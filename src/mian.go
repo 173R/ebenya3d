@@ -2,10 +2,11 @@ package main
 
 import (
 	window "ebenya3d/src/glfw"
+	"ebenya3d/src/shader_loader"
 	"fmt"
-	"github.com/go-gl/gl/v3.2-core/gl"
+	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
-	"log"
+	"math"
 	"runtime"
 	"strings"
 )
@@ -17,9 +18,16 @@ const (
 
 var (
 	triangle = []float32{
-		0, 0.5, 0, // top
-		-0.5, -0.5, 0, // left
-		0.5, -0.5, 0, // right
+		// Первый треугольник
+		0.5, 0.5, 0.0, 1.0, 0.0, 0.0, // верхняя правая
+		0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // нижняя правая
+		-0.5, -0.5, 0.0, 0.0, 0.0, 1.0, // верхняя левая
+		-0.5, 0.5, 0.0, 1.0, 1.0, 1.0, // верхняя левая
+	}
+
+	indexes = []uint32{
+		0, 1, 3, // первый треугольник
+		1, 2, 3, // второй треугольник
 	}
 )
 
@@ -29,7 +37,10 @@ func main() {
 	w := window.Init(width, height, "Ebenya3D")
 	defer glfw.Terminate()
 
-	program := initOpenGL()
+	program, err := initOpenGL()
+	if err != nil {
+		panic(err)
+	}
 
 	vao := makeVao(triangle)
 
@@ -41,59 +52,100 @@ func main() {
 func draw(vao uint32, w *glfw.Window, program uint32) {
 	gl.ClearColor(.1, .3, .3, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+	time := glfw.GetTime()
+	greenValue := (math.Sin(time)) + 0.5
+	vetexColorUniformLocation := gl.GetUniformLocation(program, gl.Str("ourColor\x00"))
+
 	gl.UseProgram(program)
+
+	gl.Uniform4f(vetexColorUniformLocation, 0, float32(greenValue), 0, 1)
 
 	window.ProcessInput(w)
 
+	// После отрисовки нужно привязать другой VAO
 	gl.BindVertexArray(vao)
-	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(triangle)/3))
+	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
+	//gl.DrawArrays(gl.TRIANGLES, 0, int32(len(triangle)/3))
 
 	glfw.PollEvents()
 	w.SwapBuffers()
 }
 
 // initOpenGL initializes OpenGL and returns an initialized program.
-func initOpenGL() uint32 {
+func initOpenGL() (uint32, error) {
 	if err := gl.Init(); err != nil {
 		panic(err)
 	}
 	version := gl.GoStr(gl.GetString(gl.VERSION))
-	log.Println("OpenGL version", version)
+	fmt.Println("OpenGL version", version)
 
-	vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
-	if err != nil {
-		panic(err)
-	}
-	fragmentShader, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
+	vertexShader, err := shader_loader.CompileVertexShader("src/shaders/vert.glsl")
 	if err != nil {
 		panic(err)
 	}
 
-	prog := gl.CreateProgram()
+	fragmentShader, err := shader_loader.CompileFragmentShader("src/shaders/frag.glsl")
+	if err != nil {
+		panic(err)
+	}
+
+	// Шейдерная программа
+	shaderProg := gl.CreateProgram()
 
 	gl.Viewport(0, 0, width, height)
 
-	gl.AttachShader(prog, vertexShader)
-	gl.AttachShader(prog, fragmentShader)
-	gl.LinkProgram(prog)
+	gl.AttachShader(shaderProg, vertexShader)
+	gl.AttachShader(shaderProg, fragmentShader)
+	gl.LinkProgram(shaderProg)
+
+	var status int32
+	gl.GetProgramiv(shaderProg, gl.LINK_STATUS, &status)
+	if status == gl.FALSE {
+		var logLength int32
+		gl.GetProgramiv(shaderProg, gl.INFO_LOG_LENGTH, &logLength)
+
+		log := strings.Repeat("\x00", int(logLength+1))
+		gl.GetProgramInfoLog(shaderProg, logLength, nil, gl.Str(log))
+
+		return 0, fmt.Errorf("failed to link program: %v", log)
+	}
+
+	gl.DeleteShader(vertexShader)
+	gl.DeleteShader(fragmentShader)
+
 	//gl.Viewport()
-	return prog
+	return shaderProg, nil
 }
 
 // makeVao initializes and returns a vertex array from the points provided.
 func makeVao(points []float32) uint32 {
+	// Абстракция над vbo, ebo + их интерпретация которую можно переиспользовать
+	// Для каждого объекта свой VAO
+	var vao uint32
+	gl.GenVertexArrays(1, &vao)
+	gl.BindVertexArray(vao)
+
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
 	// Привязали vbo к gl.ARRAY_BUFFER
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(gl.ARRAY_BUFFER, 4*len(points), gl.Ptr(points), gl.STATIC_DRAW)
 
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
+	var ebo uint32
+	gl.GenBuffers(1, &ebo)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, 4*len(indexes), gl.Ptr(indexes), gl.STATIC_DRAW)
+
+	// Интерпретация вершин из vbo
 	gl.EnableVertexAttribArray(0)
 	//gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 0, nil)
+	// layout (location = 0)
+	// НЕТ stride!!!
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 6*4, nil)
+
+	gl.EnableVertexAttribArray(1)
+	gl.VertexAttribPointerWithOffset(1, 3, gl.FLOAT, false, 6*4, uintptr(3*4))
 
 	return vao
 }
@@ -120,20 +172,3 @@ func compileShader(source string, shaderType uint32) (uint32, error) {
 
 	return shader, nil
 }
-
-var vertexShaderSource = `
-    #version 330
-    layout (location = 0) in vec3 vp;
-
-    void main() {
-        gl_Position = vec4(vp, 1.0);
-    }
-` + "\x00"
-
-var fragmentShaderSource = `
-    #version 330
-    out vec4 frag_colour;
-    void main() {
-        frag_colour = vec4(1, 0.5, 1, 1);
-    }
-` + "\x00"
