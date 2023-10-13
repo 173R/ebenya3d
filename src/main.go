@@ -1,6 +1,8 @@
 package main
 
 import (
+	"ebenya3d/src/camera"
+	"ebenya3d/src/consts"
 	window "ebenya3d/src/glfw"
 	"ebenya3d/src/pipeline"
 	"fmt"
@@ -10,13 +12,9 @@ import (
 	"runtime"
 )
 
-const (
-	width  = 800
-	height = 600
-)
-
 type Core struct {
 	DefaultPipeline *pipeline.Pipeline
+	Camera          *camera.Camera
 }
 
 func Init() (*Core, error) {
@@ -27,15 +25,18 @@ func Init() (*Core, error) {
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	fmt.Println("OpenGL version", version)
 
-	gl.Viewport(0, 0, width, height)
+	gl.Viewport(0, 0, consts.Width, consts.Height)
 
 	defaultPipeline, err := pipeline.Load("src/shaders/vert.glsl", "src/shaders/frag.glsl")
 	if err != nil {
 		return nil, err
 	}
 
+	cam := camera.Init()
+
 	return &Core{
 		DefaultPipeline: defaultPipeline,
+		Camera:          cam,
 	}, nil
 }
 
@@ -47,20 +48,14 @@ func (c *Core) DrawObject(vao uint32) {
 
 	gl.UseProgram(c.DefaultPipeline.ID)
 
-	//proj := mgl32.Perspective(mgl32.DegToRad(45), width/height, .1, 100)
+	view := c.Camera.GetView()
 
-	view := mgl32.Ident4()
-	view = view.Mul4(mgl32.Translate3D(0, 0, -3.0))
 	c.DefaultPipeline.SetUniformMatrix4fv("view", view)
-
-	proj := mgl32.Ident4()
-	proj = proj.Mul4(mgl32.Perspective(mgl32.DegToRad(45), width/height, .1, 100))
-	c.DefaultPipeline.SetUniformMatrix4fv("proj", proj)
 
 	for i := 0; i < 5; i++ {
 		model := mgl32.Ident4()
 		model = model.Mul4(mgl32.Translate3D(0, float32(i), 0))
-		model = model.Mul4(mgl32.HomogRotate3DX(float32(glfw.GetTime())))
+		//1model = model.Mul4(mgl32.HomogRotate3DX(float32(glfw.GetTime())))
 
 		c.DefaultPipeline.SetUniformMatrix4fv("model", model)
 
@@ -86,15 +81,15 @@ func (c *Core) DrawObject(vao uint32) {
 
 var (
 	triangle = []float32{
-		0.5, 0.5, +0.5, 1.0, 0.0, 0.0, // верхняя правая
-		0.5, -0.5, +0.5, 0.0, 1.0, 0.0, // нижняя правая
-		-0.5, -0.5, +0.5, 0.0, 0.0, 1.0, // верхняя левая
-		-0.5, 0.5, +0.5, 1.0, 1.0, 1.0, // верхняя левая
+		0.5, 0.5, -1, 1.0, 0.0, 0.0, // верхняя правая
+		0.5, -0.5, -1, 0.0, 1.0, 0.0, // нижняя правая
+		-0.5, -0.5, -1, 0.0, 0.0, 1.0, // верхняя левая
+		-0.5, 0.5, -1, 1.0, 1.0, 1.0, // верхняя левая
 
-		0.5, 0.5, -0.5, 1.0, 0.0, 0.0, // верхняя правая
-		0.5, -0.5, -0.5, 0.0, 1.0, 0.0, // нижняя правая
-		-0.5, -0.5, -0.5, 0.0, 0.0, 1.0, // верхняя левая
-		-0.5, 0.5, -0.5, 1.0, 1.0, 1.0, // верхняя левая
+		0.5, 0.5, -2, 1.0, 0.0, 0.0, // верхняя правая
+		0.5, -0.5, -2, 0.0, 1.0, 0.0, // нижняя правая
+		-0.5, -0.5, -2, 0.0, 0.0, 1.0, // верхняя левая
+		-0.5, 0.5, -2, 1.0, 1.0, 1.0, // верхняя левая
 	}
 
 	indexes = []uint32{
@@ -119,10 +114,9 @@ var (
 )
 
 func main() {
-	var err error
 	runtime.LockOSThread()
 
-	w := window.Init(width, height, "Ebenya3D")
+	w := window.Init("Ebenya3D")
 	defer glfw.Terminate()
 
 	core, err := Init()
@@ -132,7 +126,17 @@ func main() {
 
 	vao := makeVao(triangle)
 
+	var deltaTime float32
+	var lastFrameTime float32
+
+	window.RegisterMouseCallback(w, core.Camera.ProcessMouse)
+
 	for !w.ShouldClose() {
+		currentFrame := float32(glfw.GetTime())
+		deltaTime = currentFrame - lastFrameTime
+		lastFrameTime = currentFrame
+
+		core.Camera.ProcessInput(w, deltaTime)
 		window.ProcessInput(w)
 
 		core.DrawObject(vao)

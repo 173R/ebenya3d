@@ -1,11 +1,12 @@
 package window
 
 import (
-	"github.com/go-gl/gl/v3.2-core/gl"
+	"ebenya3d/src/consts"
+	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
-func Init(width int, height int, title string) *glfw.Window {
+func Init(title string) *glfw.Window {
 	if err := glfw.Init(); err != nil {
 		panic(err)
 	}
@@ -16,12 +17,15 @@ func Init(width int, height int, title string) *glfw.Window {
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 
-	window, err := glfw.CreateWindow(width, height, title, nil, nil)
+	window, err := glfw.CreateWindow(consts.Width, consts.Height, title, nil, nil)
 	if err != nil {
 		panic(err)
 	}
 	window.MakeContextCurrent()
 	window.SetFramebufferSizeCallback(framebufferSizeCallback)
+	//window.SetCursorPosCallback(mouseCallback)
+	window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
+	window.SetCursorPos(float64(consts.Width)/2, float64(consts.Height)/2)
 
 	return window
 }
@@ -34,4 +38,10 @@ func ProcessInput(w *glfw.Window) {
 
 func framebufferSizeCallback(w *glfw.Window, width int, height int) {
 	gl.Viewport(0, 0, int32(width), int32(height))
+}
+
+func RegisterMouseCallback(w *glfw.Window, callback func(xPos float64, yPos float64)) {
+	w.SetCursorPosCallback(func(w *glfw.Window, xPos float64, yPos float64) {
+		callback(xPos, yPos)
+	})
 }
