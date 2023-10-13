@@ -7,7 +7,6 @@ import (
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
-	"math"
 	"runtime"
 )
 
@@ -42,38 +41,72 @@ func Init() (*Core, error) {
 
 // DrawObject рендер дефолнтых объектов
 func (c *Core) DrawObject(vao uint32) {
+	gl.Enable(gl.DEPTH_TEST)
 	gl.ClearColor(.1, .3, .3, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	gl.UseProgram(c.DefaultPipeline.ID)
 
-	t := glfw.GetTime()
+	//proj := mgl32.Perspective(mgl32.DegToRad(45), width/height, .1, 100)
 
-	trans := mgl32.Ident4()
-	trans = trans.Mul4(mgl32.HomogRotate3DZ(mgl32.DegToRad(10 * float32(math.Sin(t)))))
-	trans = trans.Mul4(mgl32.Scale3D(0.5, 0.5, 0.5))
-	trans = trans.Mul4(mgl32.Translate3D(0, 1.5, 0))
+	model := mgl32.Ident4()
+	model = model.Mul4(mgl32.HomogRotate3DX(float32(glfw.GetTime())))
+	c.DefaultPipeline.SetUniformMatrix4fv("model", model)
 
-	c.DefaultPipeline.SetUniformMatrix4fv("transform", trans)
+	view := mgl32.Ident4()
+	view = view.Mul4(mgl32.Translate3D(0, 0, -3.0))
+	c.DefaultPipeline.SetUniformMatrix4fv("view", view)
+
+	proj := mgl32.Ident4()
+	proj = proj.Mul4(mgl32.Perspective(mgl32.DegToRad(45), width/height, .1, 100))
+	c.DefaultPipeline.SetUniformMatrix4fv("proj", proj)
+
+	//trans = trans.Mul4(mgl32.HomogRotate3DZ(float32(glfw.GetTime())))
+	//trans = trans.Mul4(mgl32.Scale3D(0.5, 0.5, 0.5))
+
+	/*uniform mat4 model;
+	uniform mat4 view;
+	uniform mat4 proj;*/
+
+	//c.DefaultPipeline.SetUniformMatrix4fv("transform", trans)
 
 	// После отрисовки нужно привязать другой VAO
 	gl.BindVertexArray(vao)
-	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
+	gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
 	//gl.DrawArrays(gl.TRIANGLES, 0, int32(len(triangle)/3))
 }
 
 var (
 	triangle = []float32{
-		// Первый треугольник
-		0.5, 0.5, 0.0, 1.0, 0.0, 0.0, // верхняя правая
-		0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // нижняя правая
-		-0.5, -0.5, 0.0, 0.0, 0.0, 1.0, // верхняя левая
-		-0.5, 0.5, 0.0, 1.0, 1.0, 1.0, // верхняя левая
+		0.5, 0.5, +0.5, 1.0, 0.0, 0.0, // верхняя правая
+		0.5, -0.5, +0.5, 0.0, 1.0, 0.0, // нижняя правая
+		-0.5, -0.5, +0.5, 0.0, 0.0, 1.0, // верхняя левая
+		-0.5, 0.5, +0.5, 1.0, 1.0, 1.0, // верхняя левая
+
+		0.5, 0.5, -0.5, 1.0, 0.0, 0.0, // верхняя правая
+		0.5, -0.5, -0.5, 0.0, 1.0, 0.0, // нижняя правая
+		-0.5, -0.5, -0.5, 0.0, 0.0, 1.0, // верхняя левая
+		-0.5, 0.5, -0.5, 1.0, 1.0, 1.0, // верхняя левая
 	}
 
 	indexes = []uint32{
+		6, 5, 4,
+		4, 7, 6,
+
 		0, 1, 3, // первый треугольник
 		1, 2, 3, // второй треугольник
+
+		3, 7, 6,
+		6, 2, 3,
+
+		0, 4, 5,
+		5, 1, 0,
+
+		3, 7, 4,
+		4, 0, 3,
+
+		1, 5, 6,
+		6, 2, 1,
 	}
 )
 
