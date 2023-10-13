@@ -1,6 +1,8 @@
 package consts
 
 const (
+	Title = "Ebenya3D"
+
 	Width  = 800
 	Height = 600
 

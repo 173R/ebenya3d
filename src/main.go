@@ -4,12 +4,47 @@ import (
 	"ebenya3d/src/camera"
 	"ebenya3d/src/consts"
 	window "ebenya3d/src/glfw"
+	"ebenya3d/src/model"
 	"ebenya3d/src/pipeline"
 	"fmt"
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
 	"runtime"
+)
+
+var (
+	triangle = []float32{
+		0.5, 0.5, -1, 1.0, 0.0, 0.0, // верхняя правая
+		0.5, -0.5, -1, 0.0, 1.0, 0.0, // нижняя правая
+		-0.5, -0.5, -1, 0.0, 0.0, 1.0, // верхняя левая
+		-0.5, 0.5, -1, 1.0, 1.0, 1.0, // верхняя левая
+
+		0.5, 0.5, -2, 1.0, 0.0, 0.0, // верхняя правая
+		0.5, -0.5, -2, 0.0, 1.0, 0.0, // нижняя правая
+		-0.5, -0.5, -2, 0.0, 0.0, 1.0, // верхняя левая
+		-0.5, 0.5, -2, 1.0, 1.0, 1.0, // верхняя левая
+	}
+
+	indexes = []uint32{
+		6, 5, 4,
+		4, 7, 6,
+
+		0, 1, 3, // первый треугольник
+		1, 2, 3, // второй треугольник
+
+		3, 7, 6,
+		6, 2, 3,
+
+		0, 4, 5,
+		5, 1, 0,
+
+		3, 7, 4,
+		4, 0, 3,
+
+		1, 5, 6,
+		6, 2, 1,
+	}
 )
 
 type Core struct {
@@ -69,47 +104,19 @@ func (c *Core) DrawObject(vao uint32) {
 	//gl.DrawArrays(gl.TRIANGLES, 0, int32(len(triangle)/3))
 }
 
-var (
-	triangle = []float32{
-		0.5, 0.5, -1, 1.0, 0.0, 0.0, // верхняя правая
-		0.5, -0.5, -1, 0.0, 1.0, 0.0, // нижняя правая
-		-0.5, -0.5, -1, 0.0, 0.0, 1.0, // верхняя левая
-		-0.5, 0.5, -1, 1.0, 1.0, 1.0, // верхняя левая
-
-		0.5, 0.5, -2, 1.0, 0.0, 0.0, // верхняя правая
-		0.5, -0.5, -2, 0.0, 1.0, 0.0, // нижняя правая
-		-0.5, -0.5, -2, 0.0, 0.0, 1.0, // верхняя левая
-		-0.5, 0.5, -2, 1.0, 1.0, 1.0, // верхняя левая
-	}
-
-	indexes = []uint32{
-		6, 5, 4,
-		4, 7, 6,
-
-		0, 1, 3, // первый треугольник
-		1, 2, 3, // второй треугольник
-
-		3, 7, 6,
-		6, 2, 3,
-
-		0, 4, 5,
-		5, 1, 0,
-
-		3, 7, 4,
-		4, 0, 3,
-
-		1, 5, 6,
-		6, 2, 1,
-	}
-)
-
 func main() {
 	runtime.LockOSThread()
 
-	w := window.Init("Ebenya3D")
+	w := window.Init(consts.Title)
 	defer glfw.Terminate()
 
 	core, err := Init()
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = model.LoadGLTFModel("resources/electric_box.gltf")
+	//_, err = model.LoadGLTFModel("resources/cube.gltf")
 	if err != nil {
 		panic(err)
 	}
@@ -119,7 +126,7 @@ func main() {
 	var deltaTime float32
 	var lastFrameTime float32
 
-	window.RegisterMouseCallback(w, core.Camera.ProcessMouse)
+	window.RegisterMouseCallback(w, core.Camera.ProcessMouseAction)
 
 	for !w.ShouldClose() {
 		currentFrame := float32(glfw.GetTime())

@@ -23,7 +23,6 @@ func Init(title string) *glfw.Window {
 	}
 	window.MakeContextCurrent()
 	window.SetFramebufferSizeCallback(framebufferSizeCallback)
-	//window.SetCursorPosCallback(mouseCallback)
 	window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
 	window.SetCursorPos(float64(consts.Width)/2, float64(consts.Height)/2)
 

@@ -26,19 +26,18 @@ type Camera struct {
 	yaw   float32
 	pitch float32
 
-	xPos float32
-	yPos float32
+	xMousePos float32
+	yMousePos float32
 }
 
 func Init() *Camera {
-
 	return &Camera{
-		position: mgl32.Vec3{0, 0, 1},
-		front:    mgl32.Vec3{0, 0, -1},
-		up:       mgl32.Vec3{0, 1, 0},
-		right:    mgl32.Vec3{1, 0, 0},
-		xPos:     consts.Width / 2,
-		yPos:     consts.Height / 2,
+		position:  mgl32.Vec3{0, 0, 1},
+		front:     mgl32.Vec3{0, 0, -1},
+		up:        mgl32.Vec3{0, 1, 0},
+		right:     mgl32.Vec3{1, 0, 0},
+		xMousePos: consts.Width / 2,
+		yMousePos: consts.Height / 2,
 	}
 }
 
@@ -68,12 +67,12 @@ func (c *Camera) SetPosition(pos mgl32.Vec3) {
 	c.position = pos
 }
 
-func (c *Camera) ProcessMouse(xPos float64, yPos float64) {
-	xOffset := float32(xPos) - c.xPos
-	yOffset := c.yPos - float32(yPos)
+func (c *Camera) ProcessMouseAction(xPos float64, yPos float64) {
+	xOffset := float32(xPos) - c.xMousePos
+	yOffset := c.yMousePos - float32(yPos)
 
-	c.xPos = float32(xPos)
-	c.yPos = float32(yPos)
+	c.xMousePos = float32(xPos)
+	c.yMousePos = float32(yPos)
 
 	c.yaw += xOffset * consts.Sensitivity
 	c.pitch += yOffset * consts.Sensitivity
