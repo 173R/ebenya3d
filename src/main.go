@@ -55,22 +55,12 @@ func (c *Core) DrawObject(vao uint32) {
 	for i := 0; i < 5; i++ {
 		model := mgl32.Ident4()
 		model = model.Mul4(mgl32.Translate3D(0, float32(i), 0))
-		//1model = model.Mul4(mgl32.HomogRotate3DX(float32(glfw.GetTime())))
 
 		c.DefaultPipeline.SetUniformMatrix4fv("model", model)
 
 		gl.BindVertexArray(vao)
 		gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
 	}
-
-	//trans = trans.Mul4(mgl32.HomogRotate3DZ(float32(glfw.GetTime())))
-	//trans = trans.Mul4(mgl32.Scale3D(0.5, 0.5, 0.5))
-
-	/*uniform mat4 model;
-	uniform mat4 view;
-	uniform mat4 proj;*/
-
-	//c.DefaultPipeline.SetUniformMatrix4fv("transform", trans)
 
 	// После отрисовки нужно привязать другой VAO
 	//gl.BindVertexArray(vao)
@@ -136,13 +126,34 @@ func main() {
 		deltaTime = currentFrame - lastFrameTime
 		lastFrameTime = currentFrame
 
-		core.Camera.ProcessInput(w, deltaTime)
-		window.ProcessInput(w)
+		ProcessInput(w, core.Camera, deltaTime)
 
 		core.DrawObject(vao)
 
 		glfw.PollEvents()
 		w.SwapBuffers()
+	}
+}
+
+func ProcessInput(w *glfw.Window, c *camera.Camera, deltaTime float32) {
+	if w.GetKey(glfw.KeyW) == glfw.Press {
+		c.ProcessKeyAction(camera.FRONT, deltaTime)
+	}
+
+	if w.GetKey(glfw.KeyS) == glfw.Press {
+		c.ProcessKeyAction(camera.BACK, deltaTime)
+	}
+
+	if w.GetKey(glfw.KeyA) == glfw.Press {
+		c.ProcessKeyAction(camera.LEFT, deltaTime)
+	}
+
+	if w.GetKey(glfw.KeyD) == glfw.Press {
+		c.ProcessKeyAction(camera.RIGHT, deltaTime)
+	}
+
+	if w.GetKey(glfw.KeyEscape) == glfw.Press {
+		w.SetShouldClose(true)
 	}
 }
 
@@ -167,7 +178,6 @@ func makeVao(points []float32) uint32 {
 
 	// Интерпретация вершин из vbo
 	gl.EnableVertexAttribArray(0)
-	//gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	// layout (location = 0)
 	// НЕТ stride!!!
 	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 6*4, nil)

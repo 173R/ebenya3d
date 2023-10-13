@@ -2,66 +2,70 @@ package camera
 
 import (
 	"ebenya3d/src/consts"
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
 	"golang.org/x/mobile/exp/f32"
 )
 
 const maxPitch = 89
 
-// var target = mgl32.Vec3{0, 0, -1}
-var up = mgl32.Vec3{0, 1, 0}
+type Action int
+
+const (
+	FRONT Action = iota + 1
+	BACK
+	LEFT
+	RIGHT
+)
 
 type Camera struct {
-	//View     mgl32.Mat4
-	position    mgl32.Vec3
-	speed       float32
-	yaw         float32
-	pitch       float32
-	front       mgl32.Vec3 // Вектор текущего направления камеры
-	sensitivity float32
+	position mgl32.Vec3
+	front    mgl32.Vec3 // Вектор текущего направления камеры
+	up       mgl32.Vec3
+	right    mgl32.Vec3
+
+	yaw   float32
+	pitch float32
 
 	xPos float32
 	yPos float32
-	//target mgl32.Vec4
 }
 
 func Init() *Camera {
 
 	return &Camera{
-		position:    mgl32.Vec3{0, 0, 1},
-		speed:       1.5,
-		front:       mgl32.Vec3{0, 0, -1},
-		sensitivity: 0.05,
-		xPos:        consts.Width / 2,
-		yPos:        consts.Height / 2,
+		position: mgl32.Vec3{0, 0, 1},
+		front:    mgl32.Vec3{0, 0, -1},
+		up:       mgl32.Vec3{0, 1, 0},
+		right:    mgl32.Vec3{1, 0, 0},
+		xPos:     consts.Width / 2,
+		yPos:     consts.Height / 2,
 	}
 }
 
 func (c *Camera) GetView() mgl32.Mat4 {
-	//fmt.Println(c.front)
-	proj := mgl32.Ident4().Mul4(mgl32.Perspective(mgl32.DegToRad(consts.FOV), consts.Width/consts.Height, .1, 100))
-	return proj.Mul4(mgl32.LookAtV(c.position, c.position.Add(c.front), up))
+	proj := mgl32.Ident4().
+		Mul4(mgl32.Perspective(mgl32.DegToRad(consts.FOV), consts.Width/consts.Height, .1, 100))
+	return proj.Mul4(mgl32.LookAtV(c.position, c.position.Add(c.front), c.up))
 }
 
-func (c *Camera) ProcessInput(w *glfw.Window, deltaTime float32) {
-	speed := c.speed * deltaTime
+func (c *Camera) ProcessKeyAction(action Action, deltaTime float32) {
+	velocity := consts.Velocity * deltaTime
 
-	if w.GetKey(glfw.KeyW) == glfw.Press {
-		c.SetPosition(c.position.Add(c.front.Mul(speed)))
+	if action == FRONT {
+		c.SetPosition(c.position.Add(c.front.Mul(velocity)))
+	} else if action == BACK {
+		c.SetPosition(c.position.Sub(c.front.Mul(velocity)))
 	}
 
-	if w.GetKey(glfw.KeyS) == glfw.Press {
-		c.SetPosition(c.position.Sub(c.front.Mul(speed)))
+	if action == LEFT {
+		c.SetPosition(c.position.Sub(c.right.Mul(velocity)))
+	} else if action == RIGHT {
+		c.SetPosition(c.position.Add(c.right.Mul(velocity)))
 	}
+}
 
-	if w.GetKey(glfw.KeyA) == glfw.Press {
-		c.SetPosition(c.position.Sub(c.front.Cross(up).Normalize().Mul(speed)))
-	}
-
-	if w.GetKey(glfw.KeyD) == glfw.Press {
-		c.SetPosition(c.position.Add(c.front.Cross(up).Normalize().Mul(speed)))
-	}
+func (c *Camera) SetPosition(pos mgl32.Vec3) {
+	c.position = pos
 }
 
 func (c *Camera) ProcessMouse(xPos float64, yPos float64) {
@@ -71,8 +75,8 @@ func (c *Camera) ProcessMouse(xPos float64, yPos float64) {
 	c.xPos = float32(xPos)
 	c.yPos = float32(yPos)
 
-	c.yaw += xOffset * c.sensitivity
-	c.pitch += yOffset * c.sensitivity
+	c.yaw += xOffset * consts.Sensitivity
+	c.pitch += yOffset * consts.Sensitivity
 
 	if c.pitch > maxPitch {
 		c.pitch = maxPitch
@@ -90,8 +94,6 @@ func (c *Camera) ProcessMouse(xPos float64, yPos float64) {
 		pitchSin,
 		-yawCos * pitchCos,
 	}.Normalize()
-}
 
-func (c *Camera) SetPosition(newPos mgl32.Vec3) {
-	c.position = newPos
+	c.right = c.front.Cross(c.up).Normalize()
 }

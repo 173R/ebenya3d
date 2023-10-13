@@ -30,12 +30,6 @@ func Init(title string) *glfw.Window {
 	return window
 }
 
-func ProcessInput(w *glfw.Window) {
-	if w.GetKey(glfw.KeyEscape) == glfw.Press {
-		w.SetShouldClose(true)
-	}
-}
-
 func framebufferSizeCallback(w *glfw.Window, width int, height int) {
 	gl.Viewport(0, 0, int32(width), int32(height))
 }
