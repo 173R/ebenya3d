@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	width  = 500
-	height = 500
+	width  = 800
+	height = 600
 )
 
 type Core struct {
@@ -49,10 +49,6 @@ func (c *Core) DrawObject(vao uint32) {
 
 	//proj := mgl32.Perspective(mgl32.DegToRad(45), width/height, .1, 100)
 
-	model := mgl32.Ident4()
-	model = model.Mul4(mgl32.HomogRotate3DX(float32(glfw.GetTime())))
-	c.DefaultPipeline.SetUniformMatrix4fv("model", model)
-
 	view := mgl32.Ident4()
 	view = view.Mul4(mgl32.Translate3D(0, 0, -3.0))
 	c.DefaultPipeline.SetUniformMatrix4fv("view", view)
@@ -60,6 +56,17 @@ func (c *Core) DrawObject(vao uint32) {
 	proj := mgl32.Ident4()
 	proj = proj.Mul4(mgl32.Perspective(mgl32.DegToRad(45), width/height, .1, 100))
 	c.DefaultPipeline.SetUniformMatrix4fv("proj", proj)
+
+	for i := 0; i < 5; i++ {
+		model := mgl32.Ident4()
+		model = model.Mul4(mgl32.Translate3D(0, float32(i), 0))
+		model = model.Mul4(mgl32.HomogRotate3DX(float32(glfw.GetTime())))
+
+		c.DefaultPipeline.SetUniformMatrix4fv("model", model)
+
+		gl.BindVertexArray(vao)
+		gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
+	}
 
 	//trans = trans.Mul4(mgl32.HomogRotate3DZ(float32(glfw.GetTime())))
 	//trans = trans.Mul4(mgl32.Scale3D(0.5, 0.5, 0.5))
@@ -71,8 +78,9 @@ func (c *Core) DrawObject(vao uint32) {
 	//c.DefaultPipeline.SetUniformMatrix4fv("transform", trans)
 
 	// После отрисовки нужно привязать другой VAO
-	gl.BindVertexArray(vao)
-	gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
+	//gl.BindVertexArray(vao)
+	//gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
+
 	//gl.DrawArrays(gl.TRIANGLES, 0, int32(len(triangle)/3))
 }
 
