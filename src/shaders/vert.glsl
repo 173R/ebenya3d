@@ -1,6 +1,6 @@
 #version 330
 layout (location = 0) in vec3 vPos;
-layout (location = 1) in vec3 vColor;
+//layout (location = 1) in vec3 vColor;
 
 out vec3 vertexColor;
 
@@ -10,5 +10,5 @@ uniform mat4 view;
 
 void main() {
     gl_Position = view * model * vec4(vPos, 1.0);
-    vertexColor = vColor;
+    vertexColor = vec3(0.1, 0.3, 0.5);
 }

@@ -13,7 +13,7 @@ import (
 	"runtime"
 )
 
-var (
+/*var (
 	triangle = []float32{
 		0.5, 0.5, -1, 1.0, 0.0, 0.0, // верхняя правая
 		0.5, -0.5, -1, 0.0, 1.0, 0.0, // нижняя правая
@@ -45,7 +45,7 @@ var (
 		1, 5, 6,
 		6, 2, 1,
 	}
-)
+)*/
 
 type Core struct {
 	DefaultPipeline *pipeline.Pipeline
@@ -76,7 +76,7 @@ func Init() (*Core, error) {
 }
 
 // DrawObject рендер дефолнтых объектов
-func (c *Core) DrawObject(vao uint32) {
+func (c *Core) DrawObject(vao uint32, meshes []model.Mesh) {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.ClearColor(.1, .3, .3, 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -87,15 +87,12 @@ func (c *Core) DrawObject(vao uint32) {
 
 	c.DefaultPipeline.SetUniformMatrix4fv("view", view)
 
-	for i := 0; i < 5; i++ {
-		model := mgl32.Ident4()
-		model = model.Mul4(mgl32.Translate3D(0, float32(i), 0))
+	c.DefaultPipeline.SetUniformMatrix4fv("model", mgl32.Ident4())
 
-		c.DefaultPipeline.SetUniformMatrix4fv("model", model)
+	model.DrawMeshes(vao, meshes)
 
-		gl.BindVertexArray(vao)
-		gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
-	}
+	//gl.BindVertexArray(vao)
+	//	gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
 
 	// После отрисовки нужно привязать другой VAO
 	//gl.BindVertexArray(vao)
@@ -115,13 +112,15 @@ func main() {
 		panic(err)
 	}
 
-	_, err = model.LoadGLTFModel("resources/electric_box.gltf")
-	//_, err = model.LoadGLTFModel("resources/cube.gltf")
+	scene, err := model.LoadGLTFScene("resources/electric_box.gltf")
+	//scene, err := model.LoadGLTFScene("resources/cube.gltf")
 	if err != nil {
 		panic(err)
 	}
 
-	vao := makeVao(triangle)
+	vao := model.MakeMultiMeshVAO(scene.GetMeshes())
+
+	//vao := makeVao(triangle)
 
 	var deltaTime float32
 	var lastFrameTime float32
@@ -135,7 +134,9 @@ func main() {
 
 		ProcessInput(w, core.Camera, deltaTime)
 
-		core.DrawObject(vao)
+		//model.Draw(vao, scene.GetMeshes())
+
+		core.DrawObject(vao, scene.GetMeshes())
 
 		glfw.PollEvents()
 		w.SwapBuffers()
@@ -164,7 +165,7 @@ func ProcessInput(w *glfw.Window, c *camera.Camera, deltaTime float32) {
 	}
 }
 
-// makeVao initializes and returns a vertex array from the points provided.
+/*// makeVao initializes and returns a vertex array from the points provided.
 func makeVao(points []float32) uint32 {
 	// Абстракция над vbo, ebo + их интерпретация которую можно переиспользовать
 	// Для каждого объекта свой VAO
@@ -193,4 +194,4 @@ func makeVao(points []float32) uint32 {
 	gl.VertexAttribPointerWithOffset(1, 3, gl.FLOAT, false, 6*4, uintptr(3*4))
 
 	return vao
-}
+}*/
