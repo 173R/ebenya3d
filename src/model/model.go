@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/qmuntal/gltf"
 	"github.com/qmuntal/gltf/modeler"
@@ -26,9 +27,19 @@ type Node struct {
 }
 
 type Mesh struct {
-	vertices  []float32 //x,y,z,u,v - layout
-	indices   []uint32
-	baseIndex int32 // Для рендера нескольких мешей
+	vertices     [][3]float32 //x,y,z,u,v - layout
+	indices      []uint32
+	indexOffset  int32
+	vertexOffset int32
+}
+
+func (m *Mesh) GetVerticesBuffer() []float32 {
+	buffer := make([]float32, 0, len(m.vertices)*3)
+	for _, v := range m.vertices {
+		buffer = append(buffer, v[0], v[1], v[2])
+	}
+
+	return buffer
 }
 
 func LoadGLTFScene(path string) (*Scene, error) {
@@ -38,7 +49,9 @@ func LoadGLTFScene(path string) (*Scene, error) {
 	}
 
 	scene := Scene{}
-	var baseIndex int32
+	var indexOffset int32
+	var vertexOffset int32
+
 	sceneMeshes := make([]Mesh, 0, len(doc.Meshes))
 
 	for _, m := range doc.Meshes {
@@ -52,12 +65,12 @@ func LoadGLTFScene(path string) (*Scene, error) {
 				return nil, err
 			}
 
-			vertices := make([]float32, 0, len(positions)*3)
+			vertices := make([][3]float32, 0, len(positions)*3)
 			for _, p := range positions {
-				vertices = append(vertices, p[0], p[1], p[2])
+				vertices = append(vertices, [3]float32{p[0], p[1], p[2]})
 			}
 
-			/*// Чтение uv координат
+			// Чтение uv координат
 			if accessor, ok := primitive.Attributes[gltf.TEXCOORD_0]; ok {
 				var uvBuffer [][2]float32
 
@@ -66,12 +79,14 @@ func LoadGLTFScene(path string) (*Scene, error) {
 					return nil, err
 				}
 
-				for i, v := range texCoords {
+				fmt.Println(texCoords)
+
+				/*for i, v := range texCoords {
 					vertices[i].uv[0] = v[0]
 					vertices[i].uv[1] = -(v[1] - 1)
-				}
+				}*/
 
-			}*/
+			}
 
 			// Чтение индексов вершин
 			var indexBuffer []uint32
@@ -81,17 +96,20 @@ func LoadGLTFScene(path string) (*Scene, error) {
 			}
 
 			/*for i, index := range indices {
-				indices[i] = uint32(indexOffset) + index
+				indices[i] = uint32(baseIndex) + index
 			}*/
 
 			mesh.vertices = append(mesh.vertices, vertices...)
 			mesh.indices = append(mesh.indices, indices...)
 		}
 
-		mesh.baseIndex = baseIndex
+		mesh.indexOffset = indexOffset
+		mesh.vertexOffset = vertexOffset
+
 		sceneMeshes = append(sceneMeshes, mesh)
 
-		baseIndex += int32(len(mesh.vertices) / 3)
+		indexOffset += int32(len(mesh.indices))
+		vertexOffset += int32(len(mesh.vertices))
 	}
 
 	scene.Nodes = make([]Node, len(doc.Nodes))
@@ -106,15 +124,23 @@ func LoadGLTFScene(path string) (*Scene, error) {
 }
 
 func DrawMeshes(vao uint32, meshes []Mesh) {
-	var indicesCount int32
+	/*var indicesCount int32
 	for _, mesh := range meshes {
 		indicesCount += int32(len(mesh.indices))
-	}
+	}*/
+
+	//gl.DrawElements(gl.TRIANGLES, indicesCount, gl.UNSIGNED_INT, nil)
 
 	for _, mesh := range meshes {
+		fmt.Println(mesh)
 		gl.BindVertexArray(vao)
-		//gl.DrawElements(gl.TRIANGLES, 72, gl.UNSIGNED_INT, nil)
-		gl.DrawElementsBaseVertex(gl.TRIANGLES, indicesCount, gl.UNSIGNED_INT, nil, mesh.baseIndex)
+
+		//gl.DrawRangeElementsBaseVertex(gl.TRIANGLES, uint32(mesh.baseIndex), uint32(mesh.baseIndex+int32(len(mesh.indices))), int32(len(mesh.indices)), gl.UNSIGNED_INT, nil, 0)
+
+		//gl.DrawElements(gl.TRIANGLES, indicesCount, gl.UNSIGNED_INT, nil)
+		//gl.LINE_STRIP
+
+		gl.DrawElementsBaseVertexWithOffset(gl.TRIANGLES, int32(len(mesh.indices)), gl.UNSIGNED_INT, uintptr(mesh.indexOffset*4), mesh.vertexOffset)
 	}
 }
 
@@ -124,7 +150,7 @@ func MakeMultiMeshVAO(meshes []Mesh) uint32 {
 	var indices []uint32
 
 	for _, mesh := range meshes {
-		vertices = append(vertices, mesh.vertices...)
+		vertices = append(vertices, mesh.GetVerticesBuffer()...)
 		indices = append(indices, mesh.indices...)
 	}
 
