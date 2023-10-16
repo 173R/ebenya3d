@@ -43,7 +43,7 @@ func Init() *Camera {
 
 func (c *Camera) GetView() mgl32.Mat4 {
 	proj := mgl32.Ident4().
-		Mul4(mgl32.Perspective(mgl32.DegToRad(consts.FOV), consts.Width/consts.Height, .1, 100))
+		Mul4(mgl32.Perspective(mgl32.DegToRad(consts.FOV), consts.Width/consts.Height, .1, 1000))
 	return proj.Mul4(mgl32.LookAtV(c.position, c.position.Add(c.front), c.up))
 }
 

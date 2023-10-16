@@ -26,7 +26,7 @@ func Init() (*Core, error) {
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	fmt.Println("OpenGL version", version)
 
-	gl.Viewport(0, 0, consts.Width, consts.Height)
+	gl.Viewport(0, 0, int32(consts.Width), int32(consts.Height))
 
 	defaultPipeline, err := pipeline.Load("src/shaders/vert.glsl", "src/shaders/frag.glsl")
 	if err != nil {
@@ -69,7 +69,7 @@ func main() {
 		panic(err)
 	}
 
-	scene, err := model.LoadGLTFScene("resources/electric_box.gltf")
+	scene, err := model.LoadGLTFScene("resources/car.gltf")
 	//scene, err := model.LoadGLTFScene("resources/cube.gltf")
 	if err != nil {
 		panic(err)

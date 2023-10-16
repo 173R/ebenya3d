@@ -17,7 +17,7 @@ func Init(title string) *glfw.Window {
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 
-	window, err := glfw.CreateWindow(consts.Width, consts.Height, title, nil, nil)
+	window, err := glfw.CreateWindow(int(consts.Width), int(consts.Height), title, nil, nil)
 	if err != nil {
 		panic(err)
 	}
