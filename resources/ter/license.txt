@@ -1,0 +1,11 @@
+Model Information:
+* title:	CT urban
+* source:	https://sketchfab.com/3d-models/ct-urban-ed08a88e145846479c389174ef5a1d66
+* author:	3axap (https://sketchfab.com/3axapV)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "CT urban" (https://sketchfab.com/3d-models/ct-urban-ed08a88e145846479c389174ef5a1d66) by 3axap (https://sketchfab.com/3axapV) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

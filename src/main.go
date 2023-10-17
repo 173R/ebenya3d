@@ -69,7 +69,7 @@ func main() {
 		panic(err)
 	}
 
-	scene, err := model.LoadGLTFScene("resources/car.gltf")
+	scene, err := model.LoadGLTFScene("resources/scene.gltf")
 	//scene, err := model.LoadGLTFScene("resources/cube.gltf")
 	if err != nil {
 		panic(err)

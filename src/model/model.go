@@ -32,6 +32,14 @@ type Node struct {
 	name string
 }
 
+func (n *Node) Translate(translation [3]float32) {
+	for i, vertex := range n.mesh.vertices {
+		n.mesh.vertices[i].position[0] = vertex.position[0] + translation[0]
+		n.mesh.vertices[i].position[1] = vertex.position[1] + translation[1]
+		n.mesh.vertices[i].position[2] = vertex.position[2] + translation[2]
+	}
+}
+
 type Mesh struct {
 	vertices     []Vertex
 	indices      []uint32
@@ -96,7 +104,11 @@ func LoadGLTFScene(path string) (*Scene, error) {
 
 	materials := make([]*texture.Material, 0, len(doc.Materials))
 	for _, material := range doc.Materials {
-		materials = append(materials, texture.NewMaterial(textures[material.PBRMetallicRoughness.BaseColorTexture.Index]))
+		if material.PBRMetallicRoughness.BaseColorTexture != nil {
+			materials = append(materials, texture.NewMaterial(textures[material.PBRMetallicRoughness.BaseColorTexture.Index]))
+		} else {
+			materials = append(materials, nil)
+		}
 	}
 
 	sceneMeshes := make([]Mesh, 0, len(doc.Meshes))
@@ -167,6 +179,8 @@ func LoadGLTFScene(path string) (*Scene, error) {
 			name: node.Name,
 			mesh: sceneMeshes[*node.Mesh],
 		}
+
+		scene.Nodes[i].Translate(node.Translation)
 	}
 
 	return &scene, nil
@@ -179,13 +193,8 @@ func DrawMeshes(vao uint32, meshes []Mesh) {
 			gl.ActiveTexture(gl.TEXTURE0)
 			gl.BindTexture(gl.TEXTURE_2D, mesh.material.BaseColorTexture.BindPtr)
 		}
+
 		gl.BindVertexArray(vao)
-
-		//gl.DrawRangeElementsBaseVertex(gl.TRIANGLES, uint32(mesh.baseIndex), uint32(mesh.baseIndex+int32(len(mesh.indices))), int32(len(mesh.indices)), gl.UNSIGNED_INT, nil, 0)
-
-		//gl.DrawElements(gl.TRIANGLES, indicesCount, gl.UNSIGNED_INT, nil)
-		//gl.LINE_STRIP
-
 		gl.DrawElementsBaseVertexWithOffset(gl.TRIANGLES, int32(len(mesh.indices)), gl.UNSIGNED_INT, uintptr(mesh.indexOffset*4), mesh.vertexOffset)
 	}
 }

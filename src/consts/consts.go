@@ -9,5 +9,5 @@ const (
 	FOV = 70
 
 	Sensitivity float32 = 0.05
-	Velocity    float32 = 1.5
+	Velocity    float32 = 3
 )
