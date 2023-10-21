@@ -28,8 +28,9 @@ func (s *Scene) GetMeshes() []Mesh {
 }
 
 type Node struct {
-	mesh Mesh
-	name string
+	mesh     Mesh
+	name     string
+	position [3]float32
 }
 
 func (n *Node) Translate(translation [3]float32) {
@@ -176,8 +177,9 @@ func LoadGLTFScene(path string) (*Scene, error) {
 	scene.Nodes = make([]Node, len(doc.Nodes))
 	for i, node := range doc.Nodes {
 		scene.Nodes[i] = Node{
-			name: node.Name,
-			mesh: sceneMeshes[*node.Mesh],
+			name:     node.Name,
+			mesh:     sceneMeshes[*node.Mesh],
+			position: node.Translation,
 		}
 
 		scene.Nodes[i].Translate(node.Translation)
@@ -199,8 +201,8 @@ func DrawMeshes(vao uint32, meshes []Mesh) {
 	}
 }
 
-// MakeMultiMeshVAO Создаёт VAO для набора статических мешей.
-func MakeMultiMeshVAO(meshes []Mesh) uint32 {
+// MakeStaticMultiMeshVAO Создаёт VAO для набора статических мешей котыре не будут изменять своё положение.
+func MakeStaticMultiMeshVAO(meshes []Mesh) uint32 {
 	var verticesBuffer []float32
 	var indicesBuffer []uint32
 

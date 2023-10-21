@@ -5,6 +5,7 @@ go 1.19
 require github.com/solarlune/tetra3d v0.14.0
 
 require (
+	github.com/AllenDang/cimgui-go v0.0.0-20231009021832-f9856eb4a9a7 // indirect
 	github.com/ebitengine/purego v0.5.0 // indirect
 	github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b // indirect

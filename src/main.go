@@ -4,6 +4,7 @@ import (
 	"ebenya3d/src/camera"
 	"ebenya3d/src/consts"
 	window "ebenya3d/src/glfw"
+	"ebenya3d/src/loaders"
 	"ebenya3d/src/model"
 	"ebenya3d/src/pipeline"
 	"fmt"
@@ -28,7 +29,24 @@ func Init() (*Core, error) {
 
 	gl.Viewport(0, 0, int32(consts.Width), int32(consts.Height))
 
-	defaultPipeline, err := pipeline.Load("src/shaders/vert.glsl", "src/shaders/frag.glsl")
+	vShader, err := loaders.Load("src/shaders/vert.glsl", loaders.VERTEX)
+	if err != nil {
+		return nil, err
+	}
+	fShader, err := loaders.Load("src/shaders/frag.glsl", loaders.FRAGMENT)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := vShader.Compile(); err != nil {
+		return nil, err
+	}
+
+	if err := fShader.Compile(); err != nil {
+		return nil, err
+	}
+
+	defaultPipeline, err := pipeline.New(fShader, vShader)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +93,7 @@ func main() {
 		panic(err)
 	}
 
-	vao := model.MakeMultiMeshVAO(scene.GetMeshes())
+	vao := model.MakeStaticMultiMeshVAO(scene.GetMeshes())
 
 	var deltaTime float32
 	var lastFrameTime float32
@@ -87,14 +105,26 @@ func main() {
 		deltaTime = currentFrame - lastFrameTime
 		lastFrameTime = currentFrame
 
+		/*if deltaTime > 1 {
+
+		}*/
+
+		glfw.PollEvents()
 		ProcessInput(w, core.Camera, deltaTime)
 
 		//model.Draw(vao, scene.GetMeshes())
 
 		core.DrawObject(vao, scene.GetMeshes())
 
-		glfw.PollEvents()
 		w.SwapBuffers()
+
+		// Должно быть
+
+		//1. Update Camera
+		//2. Обработка объектов на сцене
+		//3. Рендер
+
+		fmt.Println("fps: ", 1/deltaTime)
 	}
 }
 
