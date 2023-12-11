@@ -1,0 +1,11 @@
+Model Information:
+* title:	РАФ-2203
+* source:	https://sketchfab.com/3d-models/2203-0f8ff651d5d4401492086d408a0bb3dc
+* author:	mamont nikita (https://sketchfab.com/mamontnikita62)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "РАФ-2203" (https://sketchfab.com/3d-models/2203-0f8ff651d5d4401492086d408a0bb3dc) by mamont nikita (https://sketchfab.com/mamontnikita62) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

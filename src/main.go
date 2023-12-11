@@ -8,10 +8,10 @@ import (
 	"ebenya3d/src/model"
 	"ebenya3d/src/pipeline"
 	"fmt"
+	imgui "github.com/AllenDang/cimgui-go"
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
-	"runtime"
 )
 
 type Core struct {
@@ -77,17 +77,24 @@ func (c *Core) DrawObject(vao uint32, meshes []model.Mesh) {
 }
 
 func main() {
-	runtime.LockOSThread()
+	//runtime.LockOSThread()
+	context := imgui.CreateContext()
+	defer context.Destroy()
 
-	w := window.Init(consts.Title)
-	defer glfw.Terminate()
+	io := imgui.CurrentIO()
+
+	w, err := window.New(io)
+	defer w.Terminate()
+	if err != nil {
+		panic(err)
+	}
 
 	core, err := Init()
 	if err != nil {
 		panic(err)
 	}
 
-	scene, err := model.LoadGLTFScene("resources/scene.gltf")
+	scene, err := model.LoadGLTFScene("resources/scene.glb")
 	//scene, err := model.LoadGLTFScene("resources/cube.gltf")
 	if err != nil {
 		panic(err)
@@ -98,7 +105,8 @@ func main() {
 	var deltaTime float32
 	var lastFrameTime float32
 
-	window.RegisterMouseCallback(w, core.Camera.ProcessMouseAction)
+	// Сетим обработку инпута для камеры
+	w.SetCursorCallback(core.Camera.ProcessMouseAction)
 
 	for !w.ShouldClose() {
 		currentFrame := float32(glfw.GetTime())
@@ -128,7 +136,8 @@ func main() {
 	}
 }
 
-func ProcessInput(w *glfw.Window, c *camera.Camera, deltaTime float32) {
+// ProcessInput TODO: придумать что-то получше
+func ProcessInput(w *window.GLFW, c *camera.Camera, deltaTime float32) {
 	if w.GetKey(glfw.KeyW) == glfw.Press {
 		c.ProcessKeyAction(camera.FRONT, deltaTime)
 	}

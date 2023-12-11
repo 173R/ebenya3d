@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"ebenya3d/src/texture"
 	"github.com/go-gl/gl/v3.3-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 	"github.com/qmuntal/gltf"
 	"github.com/qmuntal/gltf/modeler"
 	"image"
@@ -14,70 +15,90 @@ import (
 
 const floatTypeSize = 4
 
+/*type Object struct {
+	UUID     string
+	Model    Model
+	Position types.Point
+}
+
+type Level struct {
+	Objects []Object
+}
+*/
+// УБрать
 type Scene struct {
-	Nodes []Node
+	Models []Model
 }
 
 func (s *Scene) GetMeshes() []Mesh {
-	meshes := make([]Mesh, len(s.Nodes))
-	for i, node := range s.Nodes {
-		meshes[i] = node.mesh
+	var meshes []Mesh
+	//meshes := make([]Mesh, len(s.Nodes))
+	for _, model := range s.Models {
+		for _, node := range model.Nodes {
+			meshes = append(meshes, *node.Mesh)
+		}
 	}
 
 	return meshes
 }
 
-type Node struct {
-	mesh     Mesh
-	name     string
-	position [3]float32
+type Model struct {
+	Name     string
+	Position mgl32.Vec3
+	Nodes    []Node
 }
 
-func (n *Node) Translate(translation [3]float32) {
-	for i, vertex := range n.mesh.vertices {
-		n.mesh.vertices[i].position[0] = vertex.position[0] + translation[0]
-		n.mesh.vertices[i].position[1] = vertex.position[1] + translation[1]
-		n.mesh.vertices[i].position[2] = vertex.position[2] + translation[2]
-	}
+type Node struct {
+	Name string
+	Mesh *Mesh
+	//Position [3]float32
+	//Node     []Node // Не более однго уровня вложенности
 }
+
+/*func (n *Node) Translate(translation mgl32.Vec3) {
+	for i := 0; i < len(n.Mesh.Vertices); i++ {
+		n.Mesh.Vertices[i].Position.Add(translation)
+	}
+}*/
 
 type Mesh struct {
-	vertices     []Vertex
-	indices      []uint32
-	indexOffset  int32
-	vertexOffset int32
+	Vertices     []Vertex
+	Indices      []uint32
+	IndexOffset  int32
+	VertexOffset int32
 
-	material *texture.Material
+	Material *texture.Material
 }
 
 const vertexSize = 5
 
 type Vertex struct {
-	position [3]float32
-	uv       [2]float32
+	Position mgl32.Vec3
+	UV       mgl32.Vec2
 }
 
 func (m *Mesh) GetVerticesBuffer() []float32 {
-	buffer := make([]float32, 0, len(m.vertices)*vertexSize)
-	for _, v := range m.vertices {
-		buffer = append(buffer, v.position[0], v.position[1], v.position[2], v.uv[0], v.uv[1])
+	buffer := make([]float32, 0, len(m.Vertices)*vertexSize)
+	for _, v := range m.Vertices {
+		buffer = append(buffer, v.Position.X(), v.Position.Y(), v.Position.Z(), v.UV.X(), v.UV.Y())
 	}
 
 	return buffer
 }
 
-func LoadGLTFScene(path string) (*Scene, error) {
+func LoadGLTFScene(path string) (*Scene /*[]Model*/, error) {
 	doc, err := gltf.Open(filepath.FromSlash(path))
 	if err != nil {
 		return nil, err
 	}
 
-	scene := Scene{}
+	//scene := Scene{}
 	var indexOffset int32
 	var vertexOffset int32
 
 	//textures := make([]*texture.Texture, 0, len(doc.Images))
 
+	// TODO: Вынести ресурсы из glb файла??
 	images := make([]image.Image, 0, len(doc.Images))
 	for _, img := range doc.Images {
 		source, err := modeler.ReadBufferView(doc, doc.BufferViews[*img.BufferView])
@@ -127,7 +148,7 @@ func LoadGLTFScene(path string) (*Scene, error) {
 		vertices := make([]Vertex, 0, len(positions)*3)
 		for _, p := range positions {
 			vertices = append(vertices, Vertex{
-				position: [3]float32{p[0], p[1], p[2]},
+				Position: mgl32.Vec3{p[0], p[1], p[2]},
 			})
 			//vertices = append(vertices, [3]float32{p[0], p[1], p[2]})
 		}
@@ -144,8 +165,8 @@ func LoadGLTFScene(path string) (*Scene, error) {
 			//fmt.Println(texCoords)
 
 			for i, v := range texCoords {
-				vertices[i].uv[0] = v[0]
-				vertices[i].uv[1] = v[1]
+				vertices[i].UV[0] = v[0]
+				vertices[i].UV[1] = v[1]
 				//vertices[i].uv[1] = -(v[1] - 1)
 			}
 		}
@@ -163,41 +184,61 @@ func LoadGLTFScene(path string) (*Scene, error) {
 		}
 
 		sceneMeshes = append(sceneMeshes, Mesh{
-			vertices:     vertices,
-			indices:      indices,
-			indexOffset:  indexOffset,
-			vertexOffset: vertexOffset,
-			material:     mat,
+			Vertices:     vertices,
+			Indices:      indices,
+			IndexOffset:  indexOffset,
+			VertexOffset: vertexOffset,
+			Material:     mat,
 		})
 
 		indexOffset += int32(len(indices))
 		vertexOffset += int32(len(vertices))
 	}
 
-	scene.Nodes = make([]Node, len(doc.Nodes))
-	for i, node := range doc.Nodes {
-		scene.Nodes[i] = Node{
-			name:     node.Name,
-			mesh:     sceneMeshes[*node.Mesh],
-			position: node.Translation,
+	var models []Model
+	var nodes []*Node
+	for _, node := range doc.Nodes {
+		var n *Node
+		if node.Children == nil {
+			n = &Node{
+				Name: node.Name,
+				Mesh: &sceneMeshes[*node.Mesh],
+			}
 		}
 
-		scene.Nodes[i].Translate(node.Translation)
+		nodes = append(nodes, n)
 	}
 
-	return &scene, nil
+	for _, node := range doc.Nodes {
+		if node.Children != nil {
+			childNodes := make([]Node, 0, len(node.Children))
+			for _, child := range node.Children {
+				childNodes = append(childNodes, *nodes[child])
+			}
+
+			models = append(models, Model{
+				Name:     node.Name,
+				Position: node.Translation,
+				Nodes:    childNodes,
+			})
+		}
+	}
+
+	//scene.Models = models
+
+	return &Scene{Models: models}, nil
 }
 
 func DrawMeshes(vao uint32, meshes []Mesh) {
 	for _, mesh := range meshes {
 		//fmt.Println(mesh)
-		if mesh.material != nil {
+		if mesh.Material != nil {
 			gl.ActiveTexture(gl.TEXTURE0)
-			gl.BindTexture(gl.TEXTURE_2D, mesh.material.BaseColorTexture.BindPtr)
+			gl.BindTexture(gl.TEXTURE_2D, mesh.Material.BaseColorTexture.BindPtr)
 		}
 
 		gl.BindVertexArray(vao)
-		gl.DrawElementsBaseVertexWithOffset(gl.TRIANGLES, int32(len(mesh.indices)), gl.UNSIGNED_INT, uintptr(mesh.indexOffset*4), mesh.vertexOffset)
+		gl.DrawElementsBaseVertexWithOffset(gl.TRIANGLES, int32(len(mesh.Indices)), gl.UNSIGNED_INT, uintptr(mesh.IndexOffset*4), mesh.VertexOffset)
 	}
 }
 
@@ -208,10 +249,10 @@ func MakeStaticMultiMeshVAO(meshes []Mesh) uint32 {
 
 	for _, mesh := range meshes {
 		verticesBuffer = append(verticesBuffer, mesh.GetVerticesBuffer()...)
-		indicesBuffer = append(indicesBuffer, mesh.indices...)
+		indicesBuffer = append(indicesBuffer, mesh.Indices...)
 
-		if mesh.material != nil {
-			mesh.material.BaseColorTexture.Bind()
+		if mesh.Material != nil {
+			mesh.Material.BaseColorTexture.Bind()
 		}
 	}
 
