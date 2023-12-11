@@ -23,11 +23,17 @@ type Camera struct {
 	up       mgl32.Vec3
 	right    mgl32.Vec3
 
+	direction mgl32.Vec3 // Вектор движения
+
 	yaw   float32
 	pitch float32
 
 	xMousePos float32
 	yMousePos float32
+}
+
+func (c *Camera) GetPosition() mgl32.Vec3 {
+	return c.position
 }
 
 func Init() *Camera {
@@ -47,25 +53,32 @@ func (c *Camera) GetView() mgl32.Mat4 {
 	return proj.Mul4(mgl32.LookAtV(c.position, c.position.Add(c.front), c.up))
 }
 
-func (c *Camera) ProcessKeyAction(action Action, deltaTime float32) {
+func (c *Camera) ProcessKeyAction(action Action) {
+	switch action {
+	case FRONT:
+		c.direction = c.direction.Add(c.front)
+	case BACK:
+		c.direction = c.direction.Sub(c.front)
+	case LEFT:
+		c.direction = c.direction.Sub(c.right)
+	case RIGHT:
+		c.direction = c.direction.Add(c.right)
+	}
+}
+
+func (c *Camera) Update(deltaTime float32) {
+	if c.direction.Len() == 0 {
+		return
+	}
+
 	velocity := consts.Velocity * deltaTime
-
-	if action == FRONT {
-		c.SetPosition(c.position.Add(c.front.Mul(velocity)))
-	} else if action == BACK {
-		c.SetPosition(c.position.Sub(c.front.Mul(velocity)))
-	}
-
-	if action == LEFT {
-		c.SetPosition(c.position.Sub(c.right.Mul(velocity)))
-	} else if action == RIGHT {
-		c.SetPosition(c.position.Add(c.right.Mul(velocity)))
-	}
+	c.position = c.position.Add(c.direction.Normalize().Mul(velocity))
+	c.direction = mgl32.Vec3{}
 }
 
-func (c *Camera) SetPosition(pos mgl32.Vec3) {
+/*func (c *Camera) SetPosition(pos mgl32.Vec3) {
 	c.position = pos
-}
+}*/
 
 func (c *Camera) ProcessMouseAction(xPos float64, yPos float64) {
 	xOffset := float32(xPos) - c.xMousePos

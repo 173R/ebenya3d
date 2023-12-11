@@ -12,6 +12,7 @@ import (
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
+	"math"
 )
 
 type Core struct {
@@ -108,6 +109,8 @@ func main() {
 	// Сетим обработку инпута для камеры
 	w.SetCursorCallback(core.Camera.ProcessMouseAction)
 
+	var position mgl32.Vec3
+
 	for !w.ShouldClose() {
 		currentFrame := float32(glfw.GetTime())
 		deltaTime = currentFrame - lastFrameTime
@@ -119,6 +122,10 @@ func main() {
 
 		glfw.PollEvents()
 		ProcessInput(w, core.Camera, deltaTime)
+
+		fmt.Println(math.Abs(float64((core.Camera.GetPosition().Len() - position.Len()) / deltaTime)))
+		position = core.Camera.GetPosition()
+		//position.Sub(core.Camera.GetPosition())
 
 		//model.Draw(vao, scene.GetMeshes())
 
@@ -132,29 +139,31 @@ func main() {
 		//2. Обработка объектов на сцене
 		//3. Рендер
 
-		fmt.Println("fps: ", 1/deltaTime)
+		//fmt.Println("fps: ", 1/deltaTime)
 	}
 }
 
 // ProcessInput TODO: придумать что-то получше
 func ProcessInput(w *window.GLFW, c *camera.Camera, deltaTime float32) {
 	if w.GetKey(glfw.KeyW) == glfw.Press {
-		c.ProcessKeyAction(camera.FRONT, deltaTime)
+		c.ProcessKeyAction(camera.FRONT)
 	}
 
 	if w.GetKey(glfw.KeyS) == glfw.Press {
-		c.ProcessKeyAction(camera.BACK, deltaTime)
+		c.ProcessKeyAction(camera.BACK)
 	}
 
 	if w.GetKey(glfw.KeyA) == glfw.Press {
-		c.ProcessKeyAction(camera.LEFT, deltaTime)
+		c.ProcessKeyAction(camera.LEFT)
 	}
 
 	if w.GetKey(glfw.KeyD) == glfw.Press {
-		c.ProcessKeyAction(camera.RIGHT, deltaTime)
+		c.ProcessKeyAction(camera.RIGHT)
 	}
 
 	if w.GetKey(glfw.KeyEscape) == glfw.Press {
 		w.SetShouldClose(true)
 	}
+
+	c.Update(deltaTime)
 }
